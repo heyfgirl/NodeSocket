@@ -17,7 +17,7 @@ exports.attributes = {
         'comment': '房间id',
         'unique': 'user_room_id',
         'allowNull': false,
-        'type': Sequelize.STRING,
+        'type': Sequelize.INTEGER,
     },
     'user_hash': {
         'comment': '用户唯一标识',

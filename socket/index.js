@@ -115,7 +115,13 @@ async function socketClose(ws) {
     sids.delete(ws.sid);
     delete io.sockets[ws.sid];
     await redisClient.destroy(`${config.redisKey.ws}_${ws.sid}`);
-    await redisClient.destroy(`${config.redisKey.user}_${ws.user_hash}`);
+    let userInfo = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${ws.user_hash}`);
+    if (userInfo && userInfo[ws.vsf]) {
+        delete userInfo[ws.vsf];
+        await redisClient.set(`${config.redisKey.user}_${ws.mod}_${ws.user_hash}`, userInfo);
+    } else {
+        await redisClient.destroy(`${config.redisKey.user}_${ws.mod}_${ws.user_hash}`);
+    }
 }
 // 对未监听 事件作出响应
 function NoResponse(message, ws) {
@@ -156,8 +162,12 @@ async function newConnection(ws, request) {
                 query[pair[0]] = pair[1];
             }
         }
-        let { token, auth } = query;
-        // if (auth) {
+        let { token } = query;
+        let vsf = request.headers.vsf;
+        if (!token || !vsf) {
+            return [ new Error('验证失败') ];
+        }
+        // 用户在该平台的唯一标识
         let IndenfiyInfo = await IdentfiyModel.findOne({
             'where': {
                 'token': token,
@@ -167,24 +177,41 @@ async function newConnection(ws, request) {
         if (!IndenfiyInfo) {
             return [ new Error('验证失败') ];
         }
+        // 用户信息
         let UserInfo = await UserModel.findOne({
             'where': {
                 'id': IndenfiyInfo.uid,
             },
             'raw': true,
         });
-        if (UserInfo) {
+        if (!UserInfo) {
             return [ new Error('验证失败') ];
         }
         ws.user_hash = UserInfo.hash;
         // 更新redis缓存信息
-        await redisClient.set(`${config.redisKey.ws}_${ws.sid}`, { 'user_hash': ws.user_hash });
-        await redisClient.set(`${config.redisKey.user}_${UserInfo.hash}`, {
-            'sid': ws.sid,
-            'nickname': UserInfo.nickname,
-            'avatar': UserInfo.avatar,
+        await redisClient.set(`${config.redisKey.ws}_${ws.sid}`, {
+            'user_hash': ws.user_hash,
+            'mod': UserInfo.mod,
         });
-        // }
+        let userInfoCache = await redisClient.get(`${config.redisKey.user}_${UserInfo.mod}_${UserInfo.hash}`);
+        ws.vsf = vsf;
+        ws.mod = UserInfo.mod;
+        if (userInfoCache) {
+            userInfoCache[vsf] = {
+                'sid': ws.sid,
+                'nickname': UserInfo.nickname,
+                'avatar': UserInfo.avatar,
+            };
+        } else {
+            userInfoCache = {
+                [vsf]: {
+                    'sid': ws.sid,
+                    'nickname': UserInfo.nickname,
+                    'avatar': UserInfo.avatar,
+                },
+            };
+        }
+        await redisClient.set(`${config.redisKey.user}_${UserInfo.mod}_${UserInfo.hash}`, userInfoCache);
     } catch (err) {
         return [ err ];
     }

@@ -6,10 +6,10 @@ const chance = require('chance')();
 const CustomError = require('../../common/lib/error_constructor').CustomError;
 const ErrorConf = require('../../common/config').error_conf;
 module.exports = {
-    // 测试
+    // 注册用户
     async Register(ctx, next) {
-        let { user_hash, nickname, avatar } = ctx.request.body;
-        let mod = 'default';
+        let { user_hash, nickname, avatar, mod } = ctx.request.body;
+        mod = mod || 'default';
         let isRegister = true;
         if (!user_hash || !nickname || !avatar) {
             throw new CustomError('异常错误缺少参数', ErrorConf.ParamError);

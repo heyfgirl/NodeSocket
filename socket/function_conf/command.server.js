@@ -1,6 +1,7 @@
 'use strict';
 const RoomModel = require('../../app/models').Room;
 const LookModel = require('../../app/models').Look;
+const Messagemodel = require('../../app/models').Message;
 const redisClient = require('../../common/model/redis.client')('socket');
 const config = require('../../app/config/config');
 
@@ -19,19 +20,19 @@ module.exports = {
             'raw': true,
         });
         if (roomInfo) {
-            let fromUInfo = await redisClient.get(`${config.redisKey.user}_${ws.user_hash}`);
+            let fromUInfo = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${ws.user_hash}`);
             for (let hash of roomInfo.user_hashs) {
                 // 除了自己所有人都发信息
                 if (hash !== ws.user_hash) {
-                    let toUInfo = await redisClient.get(`${config.redisKey.user}_${hash}`);
+                    let toUInfo = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${hash}`);
                     io[toUInfo.sid].send(JSON.stringify({
                         'cmd': 'pushToUserMsg',
                         'data': {
                             'success': true,
                             'fromUser': {
                                 'hash': ws.user_hash,
-                                'nickname': fromUInfo.nickname,
-                                'avatar': fromUInfo.avatar,
+                                'nickname': fromUInfo[ws.vsf].nickname,
+                                'avatar': fromUInfo[ws.vsf].avatar,
                             },
                             'roomId': roomInfo.id,
                         },
@@ -63,23 +64,37 @@ module.exports = {
             'msgAt': Date.now(),
         });
         // 向接收人发消息
-        let toUInfo = await redisClient.get(`${config.redisKey.user}_${toUHash}`);
+        let toUInfoVsf = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${toUHash}`);
         // 发送人信息
-        let fromUInfo = await redisClient.get(`${config.redisKey.user}_${fromUHash}`);
-        if (toUInfo) {
-            io[toUInfo.sid].send(JSON.stringify({
+        let fromUInfoVsf = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${fromUHash}`);
+        // 发送人一定在线
+        // 如果接收人在线 则通过socket直接发送
+        if (toUInfoVsf && toUInfoVsf[ws.vsf]) {
+            io[toUInfoVsf[ws.vsf].sid].send(JSON.stringify({
                 'cmd': 'pushToUserMsg',
                 'data': {
                     'success': true,
                     'fromUser': {
                         'hash': ws.user_hash,
-                        'nickname': fromUInfo.nickname,
-                        'avatar': fromUInfo.avatar,
+                        'nickname': fromUInfoVsf[ws.vsf].nickname,
+                        'avatar': fromUInfoVsf[ws.vsf].avatar,
                     },
                     'roomId': roomInfo.id,
                 },
             }));
         }
+        // 存储消息记录
+        await Messagemodel.create({
+            'user_hash': ws.user_hash,
+            'room_id': roomInfo.id,
+            // 'type': '',
+        });
+        // 创建发送人浏览日志
+        await LookModel.create({
+            'room_id': roomInfo.id,
+            'user_hash': ws.user_hash,
+            'inAt': Date.now(),
+        });
     },
 
     // 进房间
