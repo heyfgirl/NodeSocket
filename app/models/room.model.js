@@ -1,7 +1,7 @@
 'use strict';
 const Sequelize = require('sequelize');
-exports.key = 'identify';
-exports.name = '模块对接用户标识表';
+exports.key = 'room';
+exports.name = '会话房间';
 exports.options = {
     'paranoid': false,
 };
@@ -12,18 +12,22 @@ exports.attributes = {
         'primaryKey': true,
         'autoIncrement': true,
     },
-    'token': {
-        'title': '唯一Hash',
-        'comment': '编号,hash形式，不可修改',
-        'unique': 'true',
+    'type': {
+        'comment': '房间类型【many】多人和【double】双人',
         'allowNull': false,
+        'defaultValue': 'double',
         'type': Sequelize.STRING,
     },
-    'uid': {
-        'comment': '用户id',
-        'unique': 'true',
+    'user_hashs': {
+        'comment': '用户id列表',
         'allowNull': false,
-        'type': Sequelize.INTEGER,
+        'type': Sequelize.ARRAY(Sequelize.STRING),
+    },
+    'msgAt': {
+        'comment': '最后的消息时间',
+        'allowNull': true,
+        'defaultValue': null,
+        'type': Sequelize.DATE,
     },
     'extension': {
         'title': '扩展数据',

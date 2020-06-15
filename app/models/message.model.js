@@ -1,7 +1,7 @@
 'use strict';
 const Sequelize = require('sequelize');
-exports.key = 'identify';
-exports.name = '模块对接用户标识表';
+exports.key = 'message';
+exports.name = '消息表';
 exports.options = {
     'paranoid': false,
 };
@@ -12,16 +12,19 @@ exports.attributes = {
         'primaryKey': true,
         'autoIncrement': true,
     },
-    'token': {
-        'title': '唯一Hash',
-        'comment': '编号,hash形式，不可修改',
-        'unique': 'true',
+    'type': {
+        'comment': '消息类型',
+        'allowNull': false,
+        'defaultValue': 'text', // 默认文字性消息
+        'type': Sequelize.STRING,
+    },
+    'user_hash': {
+        'comment': '发表消息的人',
         'allowNull': false,
         'type': Sequelize.STRING,
     },
-    'uid': {
-        'comment': '用户id',
-        'unique': 'true',
+    'room_id': {
+        'comment': '发表消息的房间',
         'allowNull': false,
         'type': Sequelize.INTEGER,
     },

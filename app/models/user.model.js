@@ -15,7 +15,13 @@ exports.attributes = {
     'hash': {
         'title': '唯一Hash',
         'comment': '编号,hash形式，不可修改',
-        'unique': 'true',
+        'unique': 'uhash_mod',
+        'allowNull': false,
+        'type': Sequelize.STRING,
+    },
+    'mod': {
+        'comment': '开发模块',
+        'unique': 'uhash_mod',
         'allowNull': false,
         'type': Sequelize.STRING,
     },

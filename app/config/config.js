@@ -4,6 +4,7 @@ let config = {
     'redisKey': {
         'token': 'token_body', // token的key
         'user': 'user_info',
+        'ws': 'ws_info',
     },
 
 };

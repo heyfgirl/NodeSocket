@@ -25,7 +25,12 @@ function modelDefine(model_conf) {
 const RequestLog = modelDefine(require('../../common/model/request.log.model')); // 加载请求日志模块
 
 
-const User = modelDefine(require('./user.model'));// 加载用户模块
+const User = modelDefine(require('./user.model'));//
+const Identify = modelDefine(require('./identify.model'));//
+const Room = modelDefine(require('./room.model'));//
+const Message = modelDefine(require('./message.model'));//
+const Look = modelDefine(require('./look.model'));//
+
 sequelizeClient.authenticate().then(() => {
     // console.log(sequelizeClient);
     for (let i in sequelizeClient.models) {
@@ -54,5 +59,9 @@ function getSequelize() {
 module.exports = {
     getSequelize,
     User,
+    Identify,
     RequestLog,
+    Room,
+    Message,
+    Look,
 };

@@ -8,15 +8,33 @@ const Ws = require('ws');
 const WebSocketServer = Ws.Server;
 const fs = require('fs');
 const path = require('path');
-// let FolderPath = __dirname + '/../socket/function_conf';
-// let readDir = fs.readdirSync(FolderPath);// 信令处理文件
-let readDir;
+const FolderPath = __dirname + '/../socket/function_conf';
+const readDir = fs.readdirSync(FolderPath);// 信令处理文件
+let cmdFunList = {
+    'cmd': [],
+    'func': {},
+};
+readDir.forEach(file_path => { // 遍历文件夹获取文件
+    file_path = path.join(FolderPath, file_path);
+    let commonConf = require(file_path);// 加载某文件
+
+    cmdFunList.func = Object.assign({}, commonConf);
+    cmdFunList.cmd = cmdFunList.cmd.concat(cmdFunList.cmd, Object.keys(commonConf).map(item => {
+        return item.replace(/^on_/, '');
+    }));
+});
+
+const IdentfiyModel = require('../app/models').Identify;
+const UserModel = require('../app/models').User;
 const chance = require('chance')();
+const config = require('../app/config/config');
+const redisClient = require('../common/model/redis.client')('socket');
+
 let sids = new Set();
 let io;
 let a = 1,
     a_cp = 1;
-module.exports = (server, cmdConfFolder) => {
+module.exports = server => {
     if (!server) {
         if (!io) {
             throw new Error('异常错误，初始化socket失败');
@@ -37,12 +55,23 @@ module.exports = (server, cmdConfFolder) => {
             this.isAlive = true;
         });
         // 监听断开事件
-        ws.on('close', function() {
+        ws.on('close', async function() {
             console.log('断开连接 sid =>', ws.sid);
-            socketClose(this);
+            await socketClose(this);
         });
         // 新连接 【验证等操作】
-        await newConnection(ws, request).then(() => {
+        let [ err ] = await newConnection(ws, request);
+        if (err) {
+            ws.send(JSON.stringify({
+                'cmd': 'connection',
+                'data': {
+                    'success': false,
+                    'message': 'auth_error',
+                },
+                'error': err,
+            }));
+            ws.terminate('验证失败');
+        } else {
             ws.send(JSON.stringify({
                 'cmd': 'connection',
                 'data': {
@@ -57,25 +86,14 @@ module.exports = (server, cmdConfFolder) => {
                     try {
                         message = JSON.parse(message);
                         // 集中统一信令服务器，指令事件
-                        loadConfigCmd(cmdConfFolder)(message, ws, io);
+                        commandListF(message, ws, io);
                     } catch (error) {
                         console.log('解析指令失败');
                         NoResponse(message, ws);
                     }
                 });
             });
-        }).catch(err => {
-            // console.log('验证失败', JSON.stringify(error));
-            ws.send(JSON.stringify({
-                'cmd': 'connection',
-                'data': {
-                    'success': false,
-                    'message': 'auth_error',
-                },
-                'error': err,
-            }));
-            ws.terminate('验证失败');
-        });
+        }
     });
     return io;
 };
@@ -93,9 +111,11 @@ const interval = setInterval(function ping() {
     });
 }, 5000);
 // 客户端断开连接
-function socketClose(ws) {
+async function socketClose(ws) {
     sids.delete(ws.sid);
     delete io.sockets[ws.sid];
+    await redisClient.destroy(`${config.redisKey.ws}_${ws.sid}`);
+    await redisClient.destroy(`${config.redisKey.user}_${ws.user_hash}`);
 }
 // 对未监听 事件作出响应
 function NoResponse(message, ws) {
@@ -112,61 +132,75 @@ function NoResponse(message, ws) {
 }
 // 新连接 客户端到来
 async function newConnection(ws, request) {
-    return new Promise((resolve, reject) => {
-        try {
-            // 新增 socket增加socket的sid
-            while (a_cp === a) {
-                let sid = chance.hash({ 'length': 32 });
-                if (!sids.has(sid)) {
-                    io.sockets[sid] = ws;
-                    sids.add(sid);
-                    ws.sid = sid;
-                    break;
-                }
+    // 新增 socket增加socket的sid
+    try {
+        while (a_cp === a) {
+            let sid = chance.hash({ 'length': 32 });
+            if (!sids.has(sid)) {
+                io.sockets[sid] = ws;
+                sids.add(sid);
+                ws.sid = sid;
+                break;
             }
-            // 对该socket进行用户验证
-            let vars = request.url.split('&');
-            let query = {};
-            for (let i = 0; i < vars.length; i++) {
-                let pair = vars[i].split('=');
-                if (pair.length === 2) {
-                    if (pair[0].indexOf('?') > -1) {
-                        let par_i = pair[0].split('?');
-                        pair[0] = par_i[1];
-                    }
-                    query[pair[0]] = pair[1];
-                }
-            }
-            console.log(query);
-            return resolve();
-        } catch (error) {
-            return reject(error);
         }
-    });
+        // 对该socket进行用户验证
+        let vars = request.url.split('&');
+        let query = {};
+        for (let i = 0; i < vars.length; i++) {
+            let pair = vars[i].split('=');
+            if (pair.length === 2) {
+                if (pair[0].indexOf('?') > -1) {
+                    let par_i = pair[0].split('?');
+                    pair[0] = par_i[1];
+                }
+                query[pair[0]] = pair[1];
+            }
+        }
+        let { token, auth } = query;
+        // if (auth) {
+        let IndenfiyInfo = await IdentfiyModel.findOne({
+            'where': {
+                'token': token,
+            },
+            'raw': true,
+        });
+        if (!IndenfiyInfo) {
+            return [ new Error('验证失败') ];
+        }
+        let UserInfo = await UserModel.findOne({
+            'where': {
+                'id': IndenfiyInfo.uid,
+            },
+            'raw': true,
+        });
+        if (UserInfo) {
+            return [ new Error('验证失败') ];
+        }
+        ws.user_hash = UserInfo.hash;
+        // 更新redis缓存信息
+        await redisClient.set(`${config.redisKey.ws}_${ws.sid}`, { 'user_hash': ws.user_hash });
+        await redisClient.set(`${config.redisKey.user}_${UserInfo.hash}`, {
+            'sid': ws.sid,
+            'nickname': UserInfo.nickname,
+            'avatar': UserInfo.avatar,
+        });
+        // }
+    } catch (err) {
+        return [ err ];
+    }
+    return [ null ];
 }
 // 加载监听客户端 指令 【暂时无用】
-function loadConfigCmd(cmdConfFolder) {
-    readDir = readDir || fs.readdirSync(cmdConfFolder);// 信令处理文件
-    return function commandListF(message, ws, io) {
-        let isAnswer = false; // 假设无响应
-        readDir.forEach(file_path => {
-            file_path = path.join(cmdConfFolder, file_path);
-            let commonConf = require(file_path);
-            commonConf.cmd.forEach(cmd => {
-                if (message.cmd === cmd) {
-                    isAnswer = true;
-                    if (commonConf.func[`on_${cmd}`]) {
-                        commonConf.func[`on_${cmd}`](ws, io);
-                    } else {
-                        // logger.error(`command [${cmd}]: function on_${cmd} not exist`);
-                    }
-                }
-
-            });
-        });
-        // 确实无监听事件  则返回消息
-        if (!isAnswer) {
-            NoResponse(message, ws);
+function commandListF(message, ws, io) {
+    let isAnswer = false; // 假设无响应
+    cmdFunList.cmd.forEach(cmd => {
+        if (message.cmd === cmd) {
+            isAnswer = true;
+            cmdFunList.func[`on_${cmd}`](message.data, ws, io);
         }
-    };
+    });
+    // 确实无监听事件  则返回消息
+    if (!isAnswer) {
+        NoResponse(message, ws);
+    }
 }

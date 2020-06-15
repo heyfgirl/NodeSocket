@@ -10,7 +10,7 @@
     "ali-oss": "^6.2.0",
     "chance": "^1.1.6",
     "eslint-config-egg": "^7.4.1",
-    "ioredis": "^4.14.0",
+    "ioredis": "^4.17.3",
     "ipaddr.js": "^1.9.1",
     "koa": "^2.7.0",
     "koa-bodyparser": "^4.2.1",
