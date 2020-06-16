@@ -89,11 +89,15 @@ module.exports = {
             'order': [[ 'msgAt', 'desc' ]],
             'raw': true,
         });
-        let user_hashs = [ ...(new Set(rooms.rows.map(item => item.user_hashs).reduce((a, b) => a.concat(b), [])).delete(user_hash)) ];
+        let Setuser_hashs = new Set(rooms.rows.map(item => item.user_hashs).reduce((a, b) => a.concat(b), []));
+        Setuser_hashs.delete(user_hash);
+        let user_hashs = [ ... Setuser_hashs ].filter(item => item);
         // 获取所有用户信息
         let userAll = await UserModel.findAll({
-            'hash': {
-                '$in': user_hashs,
+            'where': {
+                'hash': {
+                    '$in': user_hashs,
+                },
             },
             'raw': true,
         });

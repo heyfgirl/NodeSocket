@@ -25,7 +25,7 @@ module.exports = {
                 // 除了自己所有人都发信息
                 if (hash !== ws.user_hash) {
                     let toUInfo = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${hash}`);
-                    let wsCli = io.sockets.get(toUInfo.sid);
+                    let wsCli = io.sockets.get(toUInfo[ws.vsf].sid);
                     if (wsCli) {
                         wsCli.SendInfo((message || {}).cmd, (message || {}).hash, {
                             'fromUser': {
@@ -33,7 +33,8 @@ module.exports = {
                                 'nickname': fromUInfo[ws.vsf].nickname,
                                 'avatar': fromUInfo[ws.vsf].avatar,
                             },
-                            'roomId': roomInfo.id,
+                            'msg': message.data.msg,
+                            'roomId': roomId,
                         });
                     }
                 }
@@ -64,8 +65,21 @@ module.exports = {
                 'message': '缺少参数',
             });
         }
+        // 查看双方时候已经创建国房间
+        let roomInfo = await RoomModel.findOne({
+            'where': {
+                'user_hashs': [ fromUHash, toUHash ],
+                'type': 'double',
+            },
+            'raw': true,
+        });
+        if (roomInfo) {
+            let roomId = roomInfo.id;
+            message.data.roomId = roomId;
+            return this.on_pushToRoomMsg(message, ws, io);
+        }
         // 创建双人房间
-        let roomInfo = await RoomModel.create({
+        roomInfo = await RoomModel.create({
             'type': 'double',
             'user_hashs': [ fromUHash, toUHash ],
             'msgAt': Date.now(),
@@ -85,6 +99,7 @@ module.exports = {
                         'nickname': fromUInfoVsf[ws.vsf].nickname,
                         'avatar': fromUInfoVsf[ws.vsf].avatar,
                     },
+                    'msg': message.data.msg,
                     'roomId': roomInfo.id,
                 });
             } else {
