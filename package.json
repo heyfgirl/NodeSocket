@@ -36,10 +36,10 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start-dev": "export NODE_ENV=dev && pm2 start app.js --name WebScoket",
-    "start-api": "export NODE_ENV=api && pm2 start app.js --name WebScoket",
-    "start-tri": "export ENABLE_NODE_LOG=YES && export NODE_LOG_DIR=/root/.alinode/logs/ && export NODE_ENV=tri && pm2 start app.js --name WebScoket",
-    "start-yun": "export NODE_ENV=yun && pm2 start app.js --name WebScoket"
+    "start-dev": "export NODE_ENV=dev && pm2 start app.js --name Scoket",
+    "start-api": "export NODE_ENV=api && pm2 start app.js --name Scoket",
+    "start-tri": "export NODE_ENV=tri && pm2 start app.js --name Scoket",
+    "start-yun": "export NODE_ENV=yun && pm2 start app.js --name Scoket"
   },
   "author": "",
   "license": "ISC"
