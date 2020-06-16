@@ -10,7 +10,13 @@
            ws.onopen = function(event) { 
                       //WebSocket Status:: Socket Open
                        //// 发送一个初始化消息
-                ws.send('{"key":12132}'); 
+                ws.send(JSON.stringify({
+                  cmd:'pushToUserMsg',
+                  hash:'12222222',
+                  data:{
+                     toUHash:'sfsfsadfas1111s'
+                  }
+               })); 
            }; 
          ws.onmessage = function(event) {
             var data = event.data;

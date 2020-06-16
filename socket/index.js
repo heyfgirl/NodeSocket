@@ -131,6 +131,27 @@ module.exports = server => {
         ws.sid = req.sid;
         ws.user_hash = req.user_hash;
         io.sockets.set(ws.sid, ws);// [ws.sid ] = ws;
+        ws.SendError = function(cmd, hash, error) {
+            let data = {
+                'cmd': cmd || null,
+                'hash': hash || null,
+                'success': false,
+                'data': null,
+                'error': error,
+            };
+            return ws.send(JSON.stringify(data));
+        };
+        ws.SendInfo = function(cmd, hash, info) {
+            let data = {
+                'cmd': cmd || null,
+                'hash': hash || null,
+                'success': true,
+                'data': info,
+                'error': null,
+            };
+            return ws.send(JSON.stringify(data));
+        };
+
         ws.on('message', message => {
             // console.log('received: %s', message);
             try {
@@ -190,10 +211,10 @@ async function socketClose(ws) {
 // 对未监听 事件作出响应
 function NoResponse(message, ws) {
     ws.send(JSON.stringify({
-        'cmd': (message || {}).cmd || 'undefined',
-        'data': {
-            'success': false,
-        },
+        'cmd': (message || {}).cmd || null,
+        'hash': (message || {}).hash || null,
+        'success': false,
+        'data': null,
         'error': {
             'code': 404,
             'message': `监听到消息，但服务其并未对事件进行监听.【 ${JSON.stringify({ message })} 】。`,
@@ -205,8 +226,12 @@ function commandListF(message, ws, io) {
     let isAnswer = false; // 假设无响应
     cmdFunList.cmd.forEach(cmd => {
         if (message.cmd === cmd) {
+            if (!message.data) {
+                message.data = {};
+            }
             isAnswer = true;
-            cmdFunList.func[`on_${cmd}`](message.data, ws, io);
+            cmdFunList.func[`on_${cmd}`](message, ws, io);
+            return;
         }
     });
     // 确实无监听事件  则返回消息

@@ -11,8 +11,8 @@ module.exports = {
 
     },
     // 发送消息【房间】【已经建立房间经过消息处理】
-    'on_pushToRoomMsg': async function(data, ws, io) {
-        let roomId = data.roomId;
+    'on_pushToRoomMsg': async function(message, ws, io) {
+        let roomId = message.data.roomId;
         let roomInfo = await RoomModel.findOne({
             'where': {
                 'id': roomId,
@@ -25,18 +25,17 @@ module.exports = {
                 // 除了自己所有人都发信息
                 if (hash !== ws.user_hash) {
                     let toUInfo = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${hash}`);
-                    io[toUInfo.sid].send(JSON.stringify({
-                        'cmd': 'pushToUserMsg',
-                        'data': {
-                            'success': true,
+                    let wsCli = io.sockets.get(toUInfo.sid);
+                    if (wsCli) {
+                        wsCli.SendInfo((message || {}).cmd, (message || {}).hash, {
                             'fromUser': {
                                 'hash': ws.user_hash,
                                 'nickname': fromUInfo[ws.vsf].nickname,
                                 'avatar': fromUInfo[ws.vsf].avatar,
                             },
                             'roomId': roomInfo.id,
-                        },
-                    }));
+                        });
+                    }
                 }
             }
             await RoomModel.update({
@@ -47,16 +46,24 @@ module.exports = {
                 },
             });
         } else {
-            ws.send(JSON.stringify({
-                'cmd': 'error',
-            }));
+            return ws.SendError((message || {}).cmd, (message || {}).hash, {
+                'code': 500,
+                'message': '发送失败',
+            });
         }
     },
     // 发送消息【某人】【新会需要新建房间】
-    'on_pushToUserMsg': async function(data, ws, io) {
+    'on_pushToUserMsg': async function(message, ws, io) {
+        let data = message.data;
         // 获取接收人用户hash
         let toUHash = data.toUHash;
         let fromUHash = ws.user_hash;
+        if (!toUHash || !fromUHash) {
+            return ws.SendError((message || {}).cmd, (message || {}).hash, {
+                'code': 500,
+                'message': '缺少参数',
+            });
+        }
         // 创建双人房间
         let roomInfo = await RoomModel.create({
             'type': 'double',
@@ -70,18 +77,22 @@ module.exports = {
         // 发送人一定在线
         // 如果接收人在线 则通过socket直接发送
         if (toUInfoVsf && toUInfoVsf[ws.vsf]) {
-            io[toUInfoVsf[ws.vsf].sid].send(JSON.stringify({
-                'cmd': 'pushToUserMsg',
-                'data': {
-                    'success': true,
+            let wsCli = io.sockets.get(toUInfoVsf[ws.vsf].sid);
+            if (wsCli) {
+                wsCli.SendInfo((message || {}).cmd, (message || {}).hash, {
                     'fromUser': {
                         'hash': ws.user_hash,
                         'nickname': fromUInfoVsf[ws.vsf].nickname,
                         'avatar': fromUInfoVsf[ws.vsf].avatar,
                     },
                     'roomId': roomInfo.id,
-                },
-            }));
+                });
+            } else {
+                return ws.SendError((message || {}).cmd, (message || {}).hash, {
+                    'code': 500,
+                    'message': '缺少参数',
+                });
+            }
         }
         // 存储消息记录
         await Messagemodel.create({
