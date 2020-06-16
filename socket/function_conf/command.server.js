@@ -8,7 +8,7 @@ const config = require('../../app/config/config');
 module.exports = {
     // 加入房间
     'on_joinRoom': async function(data, ws, io) {
-
+        console.log(2);
     },
     // 发送消息【房间】【已经建立房间经过消息处理】
     'on_pushToRoomMsg': async function(message, ws, io) {
