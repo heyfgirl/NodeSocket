@@ -11,12 +11,9 @@ module.exports = {
         let { user_hash, nickname, avatar, mod } = ctx.request.body;
         mod = mod || 'default';
         let isRegister = true;
-        if (!user_hash || !nickname || !avatar) {
+        if (!user_hash) {
             throw new CustomError('异常错误缺少参数', ErrorConf.ParamError);
         }
-        user_hash = user_hash.toString();
-        nickname = nickname.toString();
-        avatar = avatar.toString();
         // 查看该模块下的此用户是否在当前平台注册过
         let userInfo = await UserModel.findOne({
             'attributes': [ 'id', 'hash' ],
@@ -27,6 +24,9 @@ module.exports = {
             'raw': true,
         });
         if (!userInfo) {
+            if (!nickname || !avatar) {
+                throw new CustomError('异常错误缺少参数', ErrorConf.ParamError);
+            }
             userInfo = await UserModel.create({
                 'mod': mod,
                 'hash': user_hash,
@@ -36,15 +36,17 @@ module.exports = {
         } else {
             // 存在就是更改而非注册
             isRegister = false;
-            await UserModel.update({
-                'nickname': nickname,
-                'avatar': avatar,
-            }, {
-                'where': {
-                    'mod': mod,
-                    'hash': user_hash,
-                },
-            });
+            if (nickname || avatar) {
+                await UserModel.update({
+                    'nickname': nickname,
+                    'avatar': avatar,
+                }, {
+                    'where': {
+                        'mod': mod,
+                        'hash': user_hash,
+                    },
+                });
+            }
         }
         // 获取到用户之后再进行用户的token获取
         let IdentifyInfo;
@@ -73,7 +75,8 @@ module.exports = {
     },
     // 获取房间列表
     async GetRooms(ctx, next) {
-        let { user_hash, limit, offset } = ctx.request.body;
+        let { limit, offset } = ctx.request.body;
+        let user_hash = ctx.userInfo.hash;
         // 获取自己所在房间列表  最后消息时间倒叙
         let rooms = await RoomModel.findAndCountAll({
             'where': {
@@ -109,6 +112,6 @@ module.exports = {
             'rooms': rooms,
         };
         ctx.result['success'] = true;
-        return;
+        return await next();
     },
 };
