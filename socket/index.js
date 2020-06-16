@@ -70,7 +70,7 @@ module.exports = server => {
                 }
                 let { token, vsf } = query;
                 if (!token || !vsf) {
-                    cb(false, 403, '验证失败');
+                    return cb(false, 403, '验证失败');
                 }
                 // 用户在该平台的唯一标识
                 let IndenfiyInfo = await IdentfiyModel.findOne({
@@ -80,7 +80,7 @@ module.exports = server => {
                     'raw': true,
                 });
                 if (!IndenfiyInfo) {
-                    cb(false, 403, '验证失败');
+                    return cb(false, 403, '验证失败');
                 }
                 // 用户信息
                 let UserInfo = await UserModel.findOne({
@@ -90,7 +90,7 @@ module.exports = server => {
                     'raw': true,
                 });
                 if (!UserInfo) {
-                    cb(false, 403, '验证失败');
+                    return cb(false, 403, '验证失败');
                 }
                 info.req.user_hash = UserInfo.hash;
                 // 更新redis缓存信息
