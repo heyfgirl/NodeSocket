@@ -158,7 +158,7 @@ module.exports = {
                 let [ toUserhash ] = [ ... user_hashs ];
                 room.toUser = userObjAll[toUserhash];
             }
-            room['message'] = (messagessObjAll[room.id] || {}).info;
+            room['msg'] = (messagessObjAll[room.id] || {}).info;
             return room;
         });
         ctx.result['data'] = {
