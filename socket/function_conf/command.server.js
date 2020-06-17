@@ -14,6 +14,13 @@ module.exports = {
     // 发送消息【房间】【已经建立房间经过消息处理】
     'on_pushToRoomMsg': async function(message, ws, io) {
         let roomId = message.data.roomId;
+        roomId = parseInt(roomId)
+        if(!Number.isInteger(roomId)){
+            return ws.SendError((message || {}).cmd, (message || {}).hash, {
+                'code': 500,
+                'message': '发送失败',
+            });
+        }
         let roomInfo = await RoomModel.findOne({
             'where': {
                 'id': roomId,
@@ -26,17 +33,19 @@ module.exports = {
                 // 除了自己所有人都发信息
                 if (hash !== ws.user_hash) {
                     let toUInfo = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${hash}`);
-                    let wsCli = io.sockets.get(toUInfo[ws.vsf].sid);
-                    if (wsCli) {
-                        wsCli.SendInfo((message || {}).cmd, (message || {}).hash, {
-                            'fromUser': {
-                                'hash': ws.user_hash,
-                                'nickname': fromUInfo[ws.vsf].nickname,
-                                'avatar': fromUInfo[ws.vsf].avatar,
-                            },
-                            'msg': message.data.msg,
-                            'roomId': roomId,
-                        });
+                    if(toUInfo && toUInfo[ws.vsf]){
+                        let wsCli = io.sockets.get(toUInfo[ws.vsf].sid);
+                        if (wsCli) {
+                            wsCli.SendInfo((message || {}).cmd, (message || {}).hash, {
+                                'fromUser': {
+                                    'hash': ws.user_hash,
+                                    'nickname': fromUInfo[ws.vsf].nickname,
+                                    'avatar': fromUInfo[ws.vsf].avatar,
+                                },
+                                'msg': message.data.msg,
+                                'roomId': roomId,
+                            });
+                        }    
                     }
                 }
             }
@@ -148,7 +157,14 @@ module.exports = {
 
     // 进房间
     'on_inRoom': async function(message, ws, io) {
-        let data = message.data;
+        let data = message.data ||{};
+        data.roomId = parseInt(data.roomId);
+        if(!data.roomId && !Number.isInteger(data.roomId)){
+            return ws.SendError((message || {}).cmd, (message || {}).hash, {
+                'code': 500,
+                'message': '缺少参数',
+            });
+        }
         let lookInfo = await LookModel.findOne({
             'where': {
                 'user_hash': ws.user_hash,
@@ -179,6 +195,14 @@ module.exports = {
     // 出房间
     'on_outRoom': async function(message, ws, io) {
         let data = message.data;
+        data.roomId = parseInt(data.roomId);
+        if(!data.roomId && !Number.isInteger(data.roomId)){
+            return ws.SendError((message || {}).cmd, (message || {}).hash, {
+                'code': 500,
+                'message': '缺少参数',
+            });
+        }
+
         let lookInfo = await LookModel.findOne({
             'where': {
                 'user_hash': ws.user_hash,
