@@ -2,6 +2,8 @@
 const UserModel = require('../models').User;
 const IdentifyModel = require('../models').Identify;
 const RoomModel = require('../models').Room;
+const MessageModel = require('../models').Message;
+const Sequelize = require('sequelize');
 const chance = require('chance')();
 const CustomError = require('../../common/lib/error_constructor').CustomError;
 const ErrorConf = require('../../common/config').error_conf;
@@ -79,6 +81,7 @@ module.exports = {
     async GetRooms(ctx, next) {
         let { limit, offset } = ctx.request.body;
         let user_hash = ctx.userInfo.hash;
+        let room_ids = [];
         // 获取自己所在房间列表  最后消息时间倒叙
         let rooms = await RoomModel.findAndCountAll({
             'where': {
@@ -91,7 +94,14 @@ module.exports = {
             'order': [[ 'msgAt', 'desc' ]],
             'raw': true,
         });
-        let Setuser_hashs = new Set(rooms.rows.map(item => item.user_hashs).reduce((a, b) => a.concat(b), []));
+        // 获取所有双人房间的对方用户信息  双人房间头像为对方用户头像
+        let Setuser_hashs = new Set(rooms.rows.map(room => {
+            room_ids.push(room.id);
+            if (room.type === 'double') {
+                return room.user_hashs;
+            }
+            return [];
+        }).reduce((a, b) => a.concat(b), []));
         Setuser_hashs.delete(user_hash);
         let user_hashs = [ ... Setuser_hashs ].filter(item => item);
         // 获取所有用户信息
@@ -107,11 +117,48 @@ module.exports = {
         userAll.forEach(u => {
             userObjAll[u.hash] = u;
         });
+
+
+        // 获取房间最有一句话
+        let messages = await MessageModel.findAll({
+            'attributes': [ 'room_id', [ Sequelize.fn('max', Sequelize.col('createdAt')), 'createdAt' ]],
+            'where': {
+                'room_id': {
+                    '$in': room_ids,
+                },
+            },
+            'group': [ 'room_id' ],
+            'raw': true,
+        });
+        let where_message = {
+            '$or': [],
+        };
+        for (let m of messages) {
+            where_message.$or.push({
+                'createdAt': m.createdAt,
+                'room_id': m.room_id,
+            });
+        }
+        messages = await MessageModel.findAll({
+            'where': where_message,
+            'raw': true,
+        });
+        let messagessObjAll = { };
+        messages.forEach(m => {
+            messagessObjAll[m.room_id] = m;
+        });
+
+
         rooms.rows.map(room => {
-            room.users = {};
-            for (let uhash of room.user_hashs) {
-                room.users[uhash] = userObjAll[uhash];
+            // 所有双人房展示 对话人信息
+            if (room.type === 'double') {
+                room.toUser = {};
+                let user_hashs = new Set(room.user_hashs);
+                user_hashs.delete(user_hash);
+                let [ toUserhash ] = [ ... user_hashs ];
+                room.toUser = userObjAll[toUserhash];
             }
+            room['message'] = (messagessObjAll[room.id] || {}).info;
             return room;
         });
         ctx.result['data'] = {

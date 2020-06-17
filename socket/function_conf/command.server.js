@@ -47,6 +47,12 @@ module.exports = {
                     'id': roomId,
                 },
             });
+            // 存储消息记录
+            await Messagemodel.create({
+                'user_hash': ws.user_hash,
+                'room_id': roomInfo.id,
+                'info': message.data.msg,
+            });
         } else {
             return ws.SendError((message || {}).cmd, (message || {}).hash, {
                 'code': 500,
@@ -126,7 +132,7 @@ module.exports = {
         await Messagemodel.create({
             'user_hash': ws.user_hash,
             'room_id': roomInfo.id,
-            // 'type': '',
+            'info': message.data.msg,
         });
         // 创建发送人浏览日志
         await LookModel.create({

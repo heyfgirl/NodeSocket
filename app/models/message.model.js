@@ -28,6 +28,12 @@ exports.attributes = {
         'allowNull': false,
         'type': Sequelize.INTEGER,
     },
+    'info': {
+        'comment': '消息内容',
+        'allowNull': false,
+        'defaultValue': { },
+        'type': Sequelize.JSONB,
+    },
     'extension': {
         'title': '扩展数据',
         'comment': '自行定义处理的字段',
