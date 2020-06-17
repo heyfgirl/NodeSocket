@@ -167,4 +167,36 @@ module.exports = {
         ctx.result['success'] = true;
         return await next();
     },
+    // 获取消息列表
+    async GetMessages(ctx, next) {
+        let { limit = 20, offset = 0, roomId } = ctx.request.body;
+        let user_hash = ctx.userInfo.hash;
+        let roomInfo = await RoomModel.findOne({
+            'where': {
+                'id': roomId,
+            },
+            'raw': true,
+        });
+        if (!roomInfo || roomInfo.user_hashs.indexOf(user_hash) <= -1) {
+            throw new CustomError('异常错误', ErrorConf.ParamError);
+        }
+        let message = await MessageModel.findAndCountAll({
+            'where': {
+                'room_id': roomId,
+            },
+            'limit': limit,
+            'offset': offset,
+            'include': [{
+                'model': UserModel,
+                'as': 'fromUser',
+            }],
+            'order': [[ 'createdAt', 'desc' ]],
+            // 'raw': true,
+        });
+        ctx.result['data'] = {
+            'messages': message,
+        };
+        ctx.result['success'] = true;
+        return;
+    },
 };

@@ -50,6 +50,7 @@ sequelizeClient.authenticate().then(() => {
     console.log('Unable to connect to the database', err);
 });
 
+Message.belongsTo(User, { 'foreignKey': 'user_hash', 'targetKey': 'hash', 'as': 'fromUser', 'constraints': false });
 
 // 获取数据库示例
 function getSequelize() {
