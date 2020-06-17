@@ -52,6 +52,10 @@ module.exports = {
                 'message': '发送失败',
             });
         }
+        return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
+            'code': 200,
+            'message': '发送成功',
+        });
     },
     // 发送消息【某人】【新会需要新建房间】
     'on_pushToUserMsg': async function(message, ws, io) {
@@ -121,10 +125,15 @@ module.exports = {
             'user_hash': ws.user_hash,
             'inAt': Date.now(),
         });
+        return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
+            'code': 200,
+            'message': '发送成功',
+        });
     },
 
     // 进房间
-    'on_inRoom': async function(data, ws, io) {
+    'on_inRoom': async function(message, ws, io) {
+        let data = message.data;
         let lookInfo = await LookModel.findOne({
             'where': {
                 'user_hash': ws.user_hash,
@@ -147,9 +156,14 @@ module.exports = {
                 },
             });
         }
+        return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
+            'code': 200,
+            'message': '发送成功',
+        });
     },
     // 出房间
-    'on_outRoom': async function(data, ws, io) {
+    'on_outRoom': async function(message, ws, io) {
+        let data = message.data;
         let lookInfo = await LookModel.findOne({
             'where': {
                 'user_hash': ws.user_hash,
@@ -173,5 +187,9 @@ module.exports = {
                 },
             });
         }
+        return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
+            'code': 200,
+            'message': '发送成功',
+        });
     },
 };
