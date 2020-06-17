@@ -1,6 +1,7 @@
 'use strict';
 const RoomModel = require('../../app/models').Room;
 const LookModel = require('../../app/models').Look;
+const UserModel = require('../../app/models').User;
 const Messagemodel = require('../../app/models').Message;
 const redisClient = require('../../common/model/redis.client')('socket');
 const config = require('../../app/config/config');
@@ -82,6 +83,14 @@ module.exports = {
             message.data.roomId = roomId;
             return this.on_pushToRoomMsg(message, ws, io);
         }
+        // let toUserInfo = await UserModel.findOne({
+        //     'where': {
+        //         'hash': toUHash,
+        //         'mod': ws.mod,
+        //     },
+        //     'raw': true,
+        // });
+
         // 创建双人房间
         roomInfo = await RoomModel.create({
             'type': 'double',

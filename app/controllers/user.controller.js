@@ -60,7 +60,9 @@ module.exports = {
             });
         } else {
             IdentifyInfo = await IdentifyModel.findOne({
-                'uid': userInfo.id,
+                'where': {
+                    'uid': userInfo.id,
+                },
             }, {
                 'raw': true,
             });
