@@ -9,9 +9,9 @@ const cors = require('koa-cors');
 const http = require('http');
 const routing = require('koa2-routing');
 const routes = require('./app/routes');
+const Socket = require('./socket');
 const Sequelize = require('./app/models/index');
 const commonHandle = require('./common/middleware/common_handle')(Sequelize.getSequelize(), Sequelize.RequestLog);
-const Socket = require('./socket');
 
 // 解决跨域问题2
 App.use(cors({

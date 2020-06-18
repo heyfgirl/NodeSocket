@@ -43,7 +43,8 @@ module.exports = server => {
         }
     }
     io = new WebSocketServer({
-        server,
+        'noServer': true,
+        // server,
         // 连接验证
         'verifyClient': async (info, cb) => {
             // let
@@ -123,6 +124,12 @@ module.exports = server => {
             return cb(true);
         },
         'clientTracking': false, // 去除自带 io.clients的set记录方式，使用object记录
+    });
+    server.on('upgrade', function upgrade(request, socket, head) {
+        // This function is not defined on purpose. Implement it with your own logic.
+        io.handleUpgrade(request, socket, head, function done(ws) {
+            io.emit('connection', ws, request); // 可通过此提交 参数到  connection中
+        });
     });
     io.sockets = new Map();// 初始化所有客户端[ws模块会自己将client添加到]
     io.on('connection', async function connection(ws, req) {

@@ -14,6 +14,12 @@ module.exports = {
     // 发送消息【房间】【已经建立房间经过消息处理】
     'on_pushToRoomMsg': async function(message, ws, io) {
         let roomId = message.data.roomId;
+        if (!roomId || Number.isNaN(roomId)) {
+            return ws.SendError((message || {}).cmd, (message || {}).hash, {
+                'code': 500,
+                'message': '发送失败',
+            });
+        }
         let roomInfo = await RoomModel.findOne({
             'where': {
                 'id': roomId,

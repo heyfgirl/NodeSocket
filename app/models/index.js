@@ -51,6 +51,7 @@ sequelizeClient.authenticate().then(() => {
 });
 
 Message.belongsTo(User, { 'foreignKey': 'user_hash', 'targetKey': 'hash', 'as': 'fromUser', 'constraints': false });
+Room.hasMany(Message, { 'foreignKey': 'room_id', 'targetKey': 'id', 'as': 'msgs', 'constraints': false });
 
 // 获取数据库示例
 function getSequelize() {
