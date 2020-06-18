@@ -71,6 +71,7 @@ module.exports = {
         return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
             'code': 200,
             'message': '发送成功',
+            'roomId': roomInfo.id,
         });
     },
     // 发送消息【某人】【新会需要新建房间】
@@ -152,6 +153,7 @@ module.exports = {
         return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
             'code': 200,
             'message': '发送成功',
+            'roomId': roomInfo.id,
         });
     },
 
@@ -190,6 +192,7 @@ module.exports = {
         return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
             'code': 200,
             'message': '发送成功',
+            'roomId': data.roomId,
         });
     },
     // 出房间
@@ -229,6 +232,7 @@ module.exports = {
         return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
             'code': 200,
             'message': '发送成功',
+            'roomId': data.roomId,
         });
     },
 };
