@@ -5,6 +5,7 @@ const UserModel = require('../../app/models').User;
 const Messagemodel = require('../../app/models').Message;
 const redisClient = require('../../common/model/redis.client')('socket');
 const config = require('../../app/config/config');
+const moment = require('moment');
 
 module.exports = {
     // 加入房间
@@ -80,6 +81,7 @@ module.exports = {
         // 获取接收人用户hash
         let toUHash = data.toUHash;
         let fromUHash = ws.user_hash;
+        let date = moment();
         if (!toUHash || !fromUHash) {
             return ws.SendError((message || {}).cmd, (message || {}).hash, {
                 'code': 500,
@@ -111,7 +113,7 @@ module.exports = {
         roomInfo = await RoomModel.create({
             'type': 'double',
             'user_hashs': [ fromUHash, toUHash ],
-            'msgAt': Date.now(),
+            'msgAt': new Date(date),
         });
         // 向接收人发消息
         let toUInfoVsf = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${toUHash}`);
@@ -132,15 +134,15 @@ module.exports = {
                 await LookModel.create({
                     'room_id': roomInfo.id,
                     'user_hash': wsCli.user_hash,
-                    'inAt': Date.now() - 1000,
-                    'outAt': Date.now() - 1000,
+                    'inAt': new Date(date.subtract(1, 'minute')),
+                    'outAt': new Date(date.subtract(1, 'minute')),
                 });
                 // 创建发送人浏览日志
                 await LookModel.create({
                     'room_id': roomInfo.id,
                     'user_hash': ws.user_hash,
-                    'inAt': Date.now(),
-                    'outAt': Date.now(),
+                    'inAt': new Date(date),
+                    'outAt': new Date(date),
                 });
                 wsCli.SendInfo((message || {}).cmd, (message || {}).hash, {
                     'fromUser': {
