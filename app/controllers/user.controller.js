@@ -255,6 +255,7 @@ module.exports = {
         });
         ctx.result['data'] = {
             'messages': message,
+            'roomId': roomInfo.id,
         };
         ctx.result['success'] = true;
         return;
