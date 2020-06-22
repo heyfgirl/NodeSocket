@@ -174,8 +174,8 @@ module.exports = {
 
             // 处理未读消息个数
             if (room.lookInfo && room.lookInfo.lookMessage && Array.isArray(room.lookInfo.lookMessage)) {
-                delete room.lookInfo;
                 room.notreadmsg = room.lookInfo.lookMessage.length;
+                delete room.lookInfo;
             }
             return room;
         });
