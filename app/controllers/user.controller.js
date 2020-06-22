@@ -125,6 +125,7 @@ module.exports = {
                     'limit': 1,
                     'as': 'msgs',
                     'order': [[ 'createdAt', 'desc' ]],
+                    'required':false
                 },
                 // 获取房间未读消息个数
                 {
@@ -147,6 +148,7 @@ module.exports = {
                                     '$gte': Sequelize.col('"lookInfo"."outAt"'),
                                 },
                             },
+                            'required':false
                         },
                     ],
                     'required': false,
