@@ -174,6 +174,7 @@ module.exports = {
 
             // 处理未读消息个数
             if (room.lookInfo && room.lookInfo.lookMessage && Array.isArray(room.lookInfo.lookMessage)) {
+                delete room.lookInfo;
                 room.notreadmsg = room.lookInfo.lookMessage.length;
             }
             return room;
@@ -183,6 +184,7 @@ module.exports = {
         user_hashs = [ ... Setuser_hashs ].filter(item => item);
         // 获取所有用户信息
         let userAll = await UserModel.findAll({
+            'attributes': [ 'id', 'hash', 'avatar', 'nickname' ],
             'where': {
                 'hash': {
                     '$in': user_hashs,
