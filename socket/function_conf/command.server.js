@@ -124,26 +124,6 @@ module.exports = {
         if (toUInfoVsf && toUInfoVsf[ws.vsf]) {
             let wsCli = io.sockets.get(toUInfoVsf[ws.vsf].sid);
             if (wsCli) {
-                // 存储消息记录
-                await Messagemodel.create({
-                    'user_hash': ws.user_hash,
-                    'room_id': roomInfo.id,
-                    'info': message.data.msg,
-                });
-                // 创建接收人人浏览日志
-                await LookModel.create({
-                    'room_id': roomInfo.id,
-                    'user_hash': wsCli.user_hash,
-                    'inAt': new Date(date.subtract(1, 'minute')),
-                    'outAt': new Date(date.subtract(1, 'minute')),
-                });
-                // 创建发送人浏览日志
-                await LookModel.create({
-                    'room_id': roomInfo.id,
-                    'user_hash': ws.user_hash,
-                    'inAt': new Date(date),
-                    'outAt': new Date(date),
-                });
                 wsCli.SendInfo((message || {}).cmd, (message || {}).hash, {
                     'fromUser': {
                         'hash': ws.user_hash,
@@ -160,6 +140,27 @@ module.exports = {
                 });
             }
         }
+        // 存储消息记录
+        await Messagemodel.create({
+            'user_hash': ws.user_hash,
+            'room_id': roomInfo.id,
+            'info': message.data.msg,
+        });
+        // 创建接收人人浏览日志
+        await LookModel.create({
+            'room_id': roomInfo.id,
+            'user_hash': toUHash,
+            'inAt': new Date(date.subtract(1, 'minute')),
+            'outAt': new Date(date.subtract(1, 'minute')),
+        });
+        // 创建发送人浏览日志
+        await LookModel.create({
+            'room_id': roomInfo.id,
+            'user_hash': ws.user_hash,
+            'inAt': new Date(date),
+            'outAt': new Date(date),
+        });
+
         return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
             'code': 200,
             'message': '发送成功',
