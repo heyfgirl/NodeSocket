@@ -125,7 +125,7 @@ module.exports = {
                     'limit': 1,
                     'as': 'msgs',
                     'order': [[ 'createdAt', 'desc' ]],
-                    'required':false
+                    'required': false,
                 },
                 // 获取房间未读消息个数
                 {
@@ -148,7 +148,7 @@ module.exports = {
                                     '$gte': Sequelize.col('"lookInfo"."outAt"'),
                                 },
                             },
-                            'required':false
+                            'required': false,
                         },
                     ],
                     'required': false,
@@ -170,6 +170,11 @@ module.exports = {
             room_ids.push(room.id);
             if (room.type === 'double' && room.user_hashs && Array.isArray(room.user_hashs)) {
                 user_hashs = user_hashs.concat(room.user_hashs);
+            }
+
+            // 处理未读消息个数
+            if (room.lookInfo && room.lookInfo.lookMessage && Array.isArray(room.lookInfo.lookMessage)) {
+                room.notreadmsg = room.lookInfo.lookMessage.length;
             }
             return room;
         });
@@ -203,7 +208,7 @@ module.exports = {
         });
         ctx.result['data'] = {
             'rooms': rooms,
-            'count': count,
+            'notreadmsg': count,
         };
         ctx.result['success'] = true;
         return await next();
