@@ -217,12 +217,24 @@ module.exports = {
     },
     // 获取消息列表
     async GetMessages(ctx, next) {
-        let { limit = 20, offset = 0, roomId } = ctx.request.body;
+        let { limit = 20, offset = 0, roomId, toUserHash } = ctx.request.body;
         let user_hash = ctx.userInfo.hash;
+        let roomWhere = {
+            'id': roomId,
+        };
+        if (!roomId) {
+            if (!toUserHash) {
+                throw new CustomError('异常错误', ErrorConf.ParamError);
+            }
+            roomWhere = {
+                'type': 'double',
+                'user_hashs': {
+                    '$overlap': [ user_hash, toUserHash ],
+                },
+            };
+        }
         let roomInfo = await RoomModel.findOne({
-            'where': {
-                'id': roomId,
-            },
+            'where': roomWhere,
             'raw': true,
         });
         if (!roomInfo || roomInfo.user_hashs.indexOf(user_hash) <= -1) {
