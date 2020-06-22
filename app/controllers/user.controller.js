@@ -3,6 +3,7 @@ const UserModel = require('../models').User;
 const IdentifyModel = require('../models').Identify;
 const RoomModel = require('../models').Room;
 const MessageModel = require('../models').Message;
+const LooKModel = require('../models').Look;
 const Sequelize = require('sequelize');
 const chance = require('chance')();
 const CustomError = require('../../common/lib/error_constructor').CustomError;
@@ -82,6 +83,32 @@ module.exports = {
         let { limit, offset } = ctx.request.body;
         let user_hash = ctx.userInfo.hash;
         let room_ids = [];
+
+        // 查出所有未读消息个数
+        let count = await MessageModel.count({
+            'include': [
+                {
+                    'model': RoomModel,
+                    'as': 'room',
+                    'include': [
+                        {
+                            'model': LooKModel,
+                            'as': 'lookInfo',
+                            'where': {
+                                'user_hash': user_hash,
+                                'outAt': {
+                                    '$lte': Sequelize.col('"room"."msgAt"'),
+                                },
+                            },
+                            'required': true,
+                        },
+                    ],
+                    'required': true,
+                },
+            ],
+        });
+
+
         // 获取自己所在房间列表  最后消息时间倒叙
         let rooms = await RoomModel.findAndCountAll({
             'where': {
@@ -99,6 +126,32 @@ module.exports = {
                     'as': 'msgs',
                     'order': [[ 'createdAt', 'desc' ]],
                 },
+                // 获取房间未读消息个数
+                {
+                    'model': LooKModel,
+                    'attributes': [ 'id', 'room_id' ],
+                    'as': 'lookInfo',
+                    'where': {
+                        'user_hash': user_hash,
+                        'outAt': {
+                            '$lte': Sequelize.col('"room"."msgAt"'),
+                        },
+                    },
+                    'include': [
+                        {
+                            'model': MessageModel,
+                            'attributes': [ 'id', 'room_id' ],
+                            'as': 'lookMessage',
+                            'where': {
+                                'createdAt': {
+                                    '$gte': Sequelize.col('"lookInfo"."outAt"'),
+                                },
+                            },
+                        },
+                    ],
+                    'required': false,
+                },
+
             ],
             'order': [[ 'msgAt', 'desc' ]],
             // 'raw': true,
@@ -148,6 +201,7 @@ module.exports = {
         });
         ctx.result['data'] = {
             'rooms': rooms,
+            'count': count,
         };
         ctx.result['success'] = true;
         return await next();

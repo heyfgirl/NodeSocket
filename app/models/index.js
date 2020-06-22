@@ -51,7 +51,12 @@ sequelizeClient.authenticate().then(() => {
 });
 
 Message.belongsTo(User, { 'foreignKey': 'user_hash', 'targetKey': 'hash', 'as': 'fromUser', 'constraints': false });
+Room.belongsTo(Look, { 'foreignKey': 'id', 'targetKey': 'room_id', 'as': 'lookInfo', 'constraints': false });
+Look.hasMany(Message, { 'foreignKey': 'room_id', 'targetKey': 'room_id', 'as': 'lookMessage', 'constraints': false });
+
+
 Room.hasMany(Message, { 'foreignKey': 'room_id', 'targetKey': 'id', 'as': 'msgs', 'constraints': false });
+Message.belongsTo(Room, { 'foreignKey': 'room_id', 'targetKey': 'id', 'as': 'room', 'constraints': false });
 
 // 获取数据库示例
 function getSequelize() {

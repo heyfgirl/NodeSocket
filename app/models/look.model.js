@@ -33,7 +33,8 @@ exports.attributes = {
     },
     'outAt': {
         'comment': '出去时间',
-        'allowNull': true,
+        'allowNull': false,
+        'defaultValue': Date.now(),
         'type': Sequelize.DATE,
     },
     'extension': {

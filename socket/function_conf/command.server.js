@@ -122,6 +122,26 @@ module.exports = {
         if (toUInfoVsf && toUInfoVsf[ws.vsf]) {
             let wsCli = io.sockets.get(toUInfoVsf[ws.vsf].sid);
             if (wsCli) {
+                // 存储消息记录
+                await Messagemodel.create({
+                    'user_hash': ws.user_hash,
+                    'room_id': roomInfo.id,
+                    'info': message.data.msg,
+                });
+                // 创建接收人人浏览日志
+                await LookModel.create({
+                    'room_id': roomInfo.id,
+                    'user_hash': wsCli.user_hash,
+                    'inAt': Date.now() - 1000,
+                    'outAt': Date.now() - 1000,
+                });
+                // 创建发送人浏览日志
+                await LookModel.create({
+                    'room_id': roomInfo.id,
+                    'user_hash': ws.user_hash,
+                    'inAt': Date.now(),
+                    'outAt': Date.now(),
+                });
                 wsCli.SendInfo((message || {}).cmd, (message || {}).hash, {
                     'fromUser': {
                         'hash': ws.user_hash,
@@ -138,18 +158,6 @@ module.exports = {
                 });
             }
         }
-        // 存储消息记录
-        await Messagemodel.create({
-            'user_hash': ws.user_hash,
-            'room_id': roomInfo.id,
-            'info': message.data.msg,
-        });
-        // 创建发送人浏览日志
-        await LookModel.create({
-            'room_id': roomInfo.id,
-            'user_hash': ws.user_hash,
-            'inAt': Date.now(),
-        });
         return ws.SendInfo((message || {}).cmd, (message || {}).hash, {
             'code': 200,
             'message': '发送成功',
@@ -178,11 +186,13 @@ module.exports = {
             await LookModel.create({
                 'user_hash': ws.user_hash,
                 'room_id': data.roomId,
+                'inAt': Date.now(),
+                'outAt': Date.now(),
             });
         } else {
             await LookModel.update({
                 'inAt': Date.now(),
-                'outAt': null,
+                'outAt': Date.now(),
             }, {
                 'where': {
                     'id': lookInfo.id,
