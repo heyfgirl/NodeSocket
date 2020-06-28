@@ -138,19 +138,19 @@ module.exports = {
                             '$lte': Sequelize.col('"room"."msgAt"'),
                         },
                     },
-                    'include': [
-                        {
-                            'model': MessageModel,
-                            'attributes': [ 'id', 'room_id' ],
-                            'as': 'lookMessage',
-                            'where': {
-                                'createdAt': {
-                                    '$gte': Sequelize.col('"lookInfo"."outAt"'),
-                                },
-                            },
-                            'required': false,
-                        },
-                    ],
+                    // 'include': [
+                    //     {
+                    //         'model': MessageModel,
+                    //         'attributes': [ 'id', 'room_id' ],
+                    //         'as': 'lookMessage',
+                    //         'where': {
+                    //             'createdAt': {
+                    //                 '$gte': Sequelize.col('"lookInfo"."outAt"'),
+                    //             },
+                    //         },
+                    //         'required': false,
+                    //     },
+                    // ],
                     'required': false,
                 },
 
@@ -160,6 +160,7 @@ module.exports = {
         });
         // 获取所有双人房间的对方用户信息  双人房间头像为对方用户头像
         let user_hashs = [];
+        let notreadmsgRoomIds = [];
         rooms.rows = rooms.rows.map(room => {
             // let msg = room.msgs[0].get({ 'plain': true });
             room = room.get({ 'plain': true });
@@ -173,12 +174,32 @@ module.exports = {
             }
 
             // 处理未读消息个数
-            if (room.lookInfo && room.lookInfo.lookMessage && Array.isArray(room.lookInfo.lookMessage)) {
-                room.notreadmsg = room.lookInfo.lookMessage.length;
-                delete room.lookInfo;
+            // if (room.lookInfo && room.lookInfo.lookMessage && Array.isArray(room.lookInfo.lookMessage)) {
+            //     room.notreadmsg = room.lookInfo.lookMessage.length;
+            //     delete room.lookInfo;
+            // }
+            if (room.lookInfo) {
+                notreadmsgRoomIds.push(room.id);
             }
             return room;
         });
+
+        let notReadMessages = await MessageModel.count({
+            attributes:['room_id'],
+            'where': {
+                'room_id': {
+                    '$in': notreadmsgRoomIds,
+                },
+            },
+            'group': [ 'room_id' ],
+        });
+        let notReadMessagesObj = {};
+        if(notReadMessages&&Array.isArray(notReadMessages)){
+            notReadMessages.forEach(item=>{
+                notReadMessagesObj[item.room_id] = item.count;
+            })
+        }
+
         let Setuser_hashs = new Set(user_hashs);
         Setuser_hashs.delete(user_hash);
         user_hashs = [ ... Setuser_hashs ].filter(item => item);
@@ -206,6 +227,14 @@ module.exports = {
                 let [ toUserhash ] = [ ... user_hashs ];
                 room.toUser = userObjAll[toUserhash];
             }
+            if(notReadMessagesObj[room.id] || Number.isInteger(notReadMessagesObj[room.id])){
+                room.notreadmsg = parseInt( notReadMessagesObj[room.id])
+            }else{
+                room.notreadmsg = 0;
+            }
+
+            delete room.lookInfo;
+            delete room.user_hashs;
             return room;
         });
         ctx.result['data'] = {
