@@ -63,6 +63,17 @@ module.exports = {
                 'room_id': roomInfo.id,
                 'info': message.data.msg,
             });
+
+            // 更新发送人浏览日志
+            await LookModel.update({
+                'outAt': new Date(),
+            }, {
+                'where': {
+                    'room_id': roomInfo.id,
+                    'user_hash': ws.user_hash,
+                },
+            });
+
         } else {
             return ws.SendError((message || {}).cmd, (message || {}).hash, {
                 'code': 500,
