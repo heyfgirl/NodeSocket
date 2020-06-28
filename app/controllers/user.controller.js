@@ -97,7 +97,7 @@ module.exports = {
                             'where': {
                                 'user_hash': user_hash,
                                 'outAt': {
-                                    '$lte': Sequelize.col('"room"."msgAt"'),
+                                    '$lte': Sequelize.col('"message"."createdAt"'),
                                 },
                             },
                             'required': true,
@@ -171,19 +171,54 @@ module.exports = {
             return room;
         });
 
-        let notReadMessages = await MessageModel.count({
+        // let notReadMessages = await MessageModel.count({
+        //     'attributes': [ 'room_id' ],
+        //     'where': {
+        //         'room_id': {
+        //             '$in': notreadmsgRoomIds,
+        //         },
+        //     },
+        //     'group': [ 'room_id' ],
+        // });
+        let notReadMessages = await MessageModel.findAll({
             'attributes': [ 'room_id' ],
+            'include': [
+                {
+                    'model': RoomModel,
+                    'as': 'room',
+                    'include': [
+                        {
+                            'model': LooKModel,
+                            'as': 'lookInfo',
+                            'where': {
+                                'user_hash': user_hash,
+                                'outAt': {
+                                    '$lte': Sequelize.col('"message"."createdAt"'),
+                                },
+                            },
+                            'required': true,
+                        },
+                    ],
+                    'required': true,
+                },
+            ],
             'where': {
                 'room_id': {
                     '$in': notreadmsgRoomIds,
                 },
             },
-            'group': [ 'room_id' ],
+            // 'group': [ 'room_id' ],
         });
+
+
         let notReadMessagesObj = {};
         if (notReadMessages && Array.isArray(notReadMessages)) {
             notReadMessages.forEach(item => {
-                notReadMessagesObj[item.room_id] = item.count;
+                if(notReadMessagesObj[item.room_id]){
+                    ++notReadMessagesObj[item.room_id] 
+                }else{
+                    notReadMessagesObj[item.room_id] = 1;
+                }
             });
         }
 
@@ -347,7 +382,7 @@ module.exports = {
                             'where': {
                                 'user_hash': user_hash,
                                 'outAt': {
-                                    '$lte': Sequelize.col('"room"."msgAt"'),
+                                    '$lte': Sequelize.col('"message"."createdAt"'),
                                 },
                             },
                             'required': true,
