@@ -334,8 +334,35 @@ module.exports = {
             let [ toUserhash ] = [ ... user_hashs ];
             room.toUser = userObjAll[toUserhash];
         }
+        // 获取该房间未读消息个数
+        let count = await MessageModel.count({
+            'include': [
+                {
+                    'model': RoomModel,
+                    'as': 'room',
+                    'include': [
+                        {
+                            'model': LooKModel,
+                            'as': 'lookInfo',
+                            'where': {
+                                'user_hash': user_hash,
+                                'outAt': {
+                                    '$lte': Sequelize.col('"room"."msgAt"'),
+                                },
+                            },
+                            'required': true,
+                        },
+                    ],
+                    'where': {
+                        'id': roomId,
+                    },
+                    'required': true,
+                },
+            ],
+        });
         ctx.result['data'] = {
             'room': room,
+            'notreadmsg': count || 0,
         };
         ctx.result['success'] = true;
         return await next();
