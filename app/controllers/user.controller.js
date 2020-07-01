@@ -214,9 +214,9 @@ module.exports = {
         let notReadMessagesObj = {};
         if (notReadMessages && Array.isArray(notReadMessages)) {
             notReadMessages.forEach(item => {
-                if(notReadMessagesObj[item.room_id]){
-                    ++notReadMessagesObj[item.room_id] 
-                }else{
+                if (notReadMessagesObj[item.room_id]) {
+                    ++notReadMessagesObj[item.room_id];
+                } else {
                     notReadMessagesObj[item.room_id] = 1;
                 }
             });
@@ -288,10 +288,11 @@ module.exports = {
             'where': roomWhere,
             'raw': true,
         });
-        roomId = roomInfo.id;
         if (!roomInfo || roomInfo.user_hashs.indexOf(user_hash) <= -1) {
             throw new CustomError('异常错误', ErrorConf.ParamError);
         }
+
+        roomId = roomInfo.id;
         let message = await MessageModel.findAndCountAll({
             'where': {
                 'room_id': roomId,
