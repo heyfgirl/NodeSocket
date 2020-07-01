@@ -296,7 +296,10 @@ module.exports = {
         if (!roomInfo || roomInfo.user_hashs.indexOf(user_hash) <= -1) {
             // throw new CustomError('异常错误', ErrorConf.ParamError);
             ctx.result['data'] = {
-                'messages': [],
+                'messages': {
+                    'count': 0,
+                    'rows': [],
+                },
                 'roomId': null,
             };
             ctx.result['success'] = true;
