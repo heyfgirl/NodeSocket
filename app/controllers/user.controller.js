@@ -280,7 +280,7 @@ module.exports = {
             roomWhere = {
                 'type': 'double',
                 'user_hashs': {
-                    '$overlap': [ user_hash, toUserHash ],
+                    '$contains': [ user_hash, toUserHash ],
                 },
             };
         }
