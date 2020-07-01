@@ -111,6 +111,9 @@ module.exports = {
 
         // 获取自己所在房间列表  最后消息时间倒叙
         let rooms = await RoomModel.findAndCountAll({
+            attributes:{ 
+                include:[[Sequelize.literal('EXTRACT(epoch FROM CAST( "room"."msgAt" AS TIMESTAMP)) - EXTRACT(epoch FROM CAST( "lookInfo"."outAt" AS TIMESTAMP))'),"siun"]]
+            },
             'where': {
                 'user_hashs': {
                     '$overlap': [ user_hash ],
@@ -142,7 +145,9 @@ module.exports = {
                 },
 
             ],
-            'order': [[ 'msgAt', 'desc' ]],
+            order:[[Sequelize.literal('"siun" asc nulls last')]],
+            //最新未读消息放最前面
+            // 'order': [[ 'msgAt', 'desc' ]],
             // 'raw': true,
         });
         // 获取所有双人房间的对方用户信息  双人房间头像为对方用户头像
