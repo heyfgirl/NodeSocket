@@ -111,8 +111,8 @@ module.exports = {
 
         // 获取自己所在房间列表  最后消息时间倒叙
         let rooms = await RoomModel.findAndCountAll({
-            attributes:{ 
-                include:[[Sequelize.literal('EXTRACT(epoch FROM CAST( "room"."msgAt" AS TIMESTAMP)) - EXTRACT(epoch FROM CAST( "lookInfo"."outAt" AS TIMESTAMP))'),"siun"]]
+            'attributes': {
+                'include': [[ Sequelize.literal('EXTRACT(epoch FROM CAST( "room"."msgAt" AS TIMESTAMP)) - EXTRACT(epoch FROM CAST( "lookInfo"."outAt" AS TIMESTAMP))'), 'siun' ]],
             },
             'where': {
                 'user_hashs': {
@@ -145,8 +145,8 @@ module.exports = {
                 },
 
             ],
-            order:[[Sequelize.literal('"siun" asc nulls last')]],
-            //最新未读消息放最前面
+            'order': [[ Sequelize.literal('"siun" asc nulls last') ]],
+            // 最新未读消息放最前面
             // 'order': [[ 'msgAt', 'desc' ]],
             // 'raw': true,
         });
