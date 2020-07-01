@@ -294,7 +294,13 @@ module.exports = {
             'raw': true,
         });
         if (!roomInfo || roomInfo.user_hashs.indexOf(user_hash) <= -1) {
-            throw new CustomError('异常错误', ErrorConf.ParamError);
+            // throw new CustomError('异常错误', ErrorConf.ParamError);
+            ctx.result['data'] = {
+                'messages': [],
+                'roomId': null,
+            };
+            ctx.result['success'] = true;
+            return;
         }
 
         roomId = roomInfo.id;
