@@ -145,7 +145,7 @@ module.exports = {
                 },
 
             ],
-            'order': [[ Sequelize.literal('"siun" asc nulls last') ]],
+            'order': [[ 'msgAt', 'desc' ], [ Sequelize.literal('"siun" asc nulls last') ]],
             // 最新未读消息放最前面
             // 'order': [[ 'msgAt', 'desc' ]],
             // 'raw': true,
