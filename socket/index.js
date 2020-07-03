@@ -103,6 +103,15 @@ module.exports = server => {
                 info.req.vsf = vsf;
                 info.req.mod = UserInfo.mod;
                 if (userInfoCache) {
+                    // 查看该用户之前是否已经有ws连接存在 [如果存在则向老发送命令]
+                    if (userInfoCache[vsf] && userInfoCache[vsf]['sid'] && userInfoCache[vsf]['sid'] !== info.req.sid && io && io.sockets) {
+                        let oldWs = io.sockets.get(userInfoCache[vsf]['sid']);
+                        if (oldWs) {
+                            oldWs.SendInfo('on_conflictClient', +new Date(), {
+                                'user_hash': UserInfo.hash,
+                            });
+                        }
+                    }
                     userInfoCache[vsf] = {
                         'sid': info.req.sid,
                         'nickname': UserInfo.nickname,
@@ -209,8 +218,11 @@ async function socketClose(ws) {
     await redisClient.destroy(`${config.redisKey.ws}_${ws.sid}`);
     let userInfo = await redisClient.get(`${config.redisKey.user}_${ws.mod}_${ws.user_hash}`);
     if (userInfo && userInfo[ws.vsf]) {
-        delete userInfo[ws.vsf];
-        await redisClient.set(`${config.redisKey.user}_${ws.mod}_${ws.user_hash}`, userInfo);
+        // 如果当前用户关闭的ws是当前最新的ws，则可删除用户缓存信息
+        if (userInfo[ws.vsf]['sid'] === ws.sid) {
+            delete userInfo[ws.vsf];
+            await redisClient.set(`${config.redisKey.user}_${ws.mod}_${ws.user_hash}`, userInfo);
+        }
     } else {
         await redisClient.destroy(`${config.redisKey.user}_${ws.mod}_${ws.user_hash}`);
     }
