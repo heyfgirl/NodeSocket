@@ -4,7 +4,7 @@ const UserController = require('../controllers/user.controller');
 const AuthUser = require('../middleware/auth_user');
 
 module.exports = function(app) {
-    // app.route('/api/socket/push').all(AuthWhite(), PushController.Push);
+    app.route('/api/socket/push').all( UserController.Push);
     // 获取房间列表
     app.route('/get/rooms').all(AuthUser(), UserController.GetRooms);
     app.route('/get/room').all(AuthUser(), UserController.GetRoom);

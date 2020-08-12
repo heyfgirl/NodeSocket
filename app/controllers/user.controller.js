@@ -8,6 +8,7 @@ const Sequelize = require('sequelize');
 const chance = require('chance')();
 const CustomError = require('../../common/lib/error_constructor').CustomError;
 const ErrorConf = require('../../common/config').error_conf;
+const socketserver = require('../../socket')
 module.exports = {
     // 注册用户
     async Register(ctx, next) {
@@ -418,4 +419,9 @@ module.exports = {
         return await next();
 
     },
+    //推送消息
+    async Push(ctx,next){
+        var io = socketserver()
+        //找到io中的ws，像ws发消息
+    }
 };
